@@ -1,5 +1,216 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Paper Lang</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css" />
+</head>
 <body>
-<h1>Scrambled Please</h1>
+<div class="human">
+<img src="img/100phuman.svg" width="25" height="25"/><br><span>100% Human</span>
+</div>
+    <h1>
+        Paper Lang User Guide
+    </h1>
+
+    <p>
+        Let's dive right into some example games. All of these games are included in your installation for you to play and modify.
+    </p>
+
+    <h2>
+        Example: Accordion Solitaire
+    </h2>
+    <h3>Rules</h3>
+    <p>
+        The player deals out the cards one by one face up, in a row from left to right, as many at a time as space allows.<br>
+        Any card may be placed on top of the next card at its left, or the third card at its left, if the cards are of the same suit or of the same rank.<br>
+        The goal is to get all the cards in one pile.<br><br>
+        <a href="https://bicyclecards.com/how-to-play/accordion/">Rules Reference: bicyclecards</a>
+    </p>
+    <img src="img/accordion.png" width="640" alt="screenshot of accordion game"/>
+
+    <h3>Code</h3>
+    <p>
+    This is all the code needed for the game, as you can see it's very short.<br><br>Paperlang was designed exclusively for card-games, so common mechanics such as moving cards between stacks of cards are very easy to express.
+    </p>
+    <pre class="code notranslate">
+game accordion start
+
+    #use "deck"
+
+    shuffle deck
+    stacklist row[20]
+
+    setup start end
+
+    turn start
+        pickone start
+            pick row /> row[:-1:-3] top all where from{from.size > 0}, to{(from.top.v == to.top.v) || (from.top.suit == to.top.suit)} then
+            pick deck -> deck top 0 then
+                auto deck -> row{|[]} top 1
+        end
+
+        every row /> row[:-1] top all where to{(to.size == 0) && (from.size > 0)}
+
+        if (row[0]).size == 52 start
+            winneris currentPlayer
+        end
+
+    end
+end
+    </pre>
+    <h3>Explanation</h3>
+    <p>
+        As this is the first example, we'll start with some basics.<br/>
+        the whole game is contained within the game start & end lines:
+    </p>
+    <h4>The Game Block</h4>
+        <pre class="code notranslate">
+
+game accordion start
+        ...
+end
+        </pre>
+    <p>
+        You will see a lot of <span class="code notranslate">start ... end </span> pairs, together they define a 'block' of code.<br>
+        This is similar in many ways to other programming languages if you are familiar with software development (variable scope, for instance)<br>
+    </p>
+        <br/>
+    <h4>#use "..."</h4>
+        <pre class="code notranslate">#use "deck"</pre>
+    <p>This simply means that we are going to use the standard 52 card deck of paying cards. They come with all the properly configured card sprites too.</p>
+    <h4>Shuffling</h4>
+        <pre class="code notranslate">shuffle deck</pre>
+    <p>
+        The previous line actually gave us access to a 'stack' of cards called "deck". You can shuffle any stack of cards, meaning to randomly re-order the cards in the stack.<br>
+        By default, the deck is structured in order of Rank,Suit.<br><br>
+    </p>
+    <h4>The Setup Block</h4>
+    <pre class="code notranslate">setup start end</pre>
+    <p>
+        A setup block is something that runs once at the start of every game. We could have put the shuffle command into the setup block, but this would have made no difference to the game<br>
+        Any code that is placed directly under the
+    </p>
+    <pre class="code notranslate">game accordion start end</pre>
+
+    <p>
+        blocks will run once at the start of the game too, the <b>only</b> difference is that no animations will be triggered for code that runs outside of the setup block. As this code runs before the game renders for the first time.
+        So if you want any opening setup of your game to be animated, put that code into the setup block.<br><br>
+        There is nothing between the
+    </p>
+    <pre class="code notranslate">start ... end</pre>
+    <p>
+        in this setup block, meaning the block is empty.<br><br>
+    </p>
+    <h4>The Turn Block</h4>
+    <pre class="code notranslate">
+turn start
+    ...
+end
+    </pre>
+    <p>
+        Anything inside the turn block will run every single turn. Once a turn is over, the next turn will automatically begin. At the moment this autoplay behaviour cannot be changed.
+    </p>
+    <h4>The Pick Block</h4>
+    <pre class="code notranslate">
+pickone start
+    pick row /> row[:-1:-3] top all where from{from.size > 0}, to{(from.top.v == to.top.v) || (from.top.suit == to.top.suit)} then
+    pick deck -> deck top 0 then
+        auto deck -> row{|[]} top 1
+end
+    </pre>
+    <p>
+        This is a "pick block". The pick block is used whenever the player must choose between moving cards from multiple stacks.<br>
+        There's quite a lot going on here so lets break it down line by line.
+    </p>
+    <pre class="code notranslate">
+pick row /> row[:-1:-3] top all . . . then
+    </pre>
+    <p>
+    Give the user the option to pick a card from any stack in the <code class="notranslate">stacklist</code> defined above as <code class="notranslate">row</code> and place that card in the stack imeediately before it, or three spaces before it (<code class="notranslate">row[:-1:-3]</code>) the <code class="notranslate">:</code> before the number here means that we are selecting a position in the <code class="notranslate">stacklist</code> relative to where the cards are being moved from.<br>
+    <code class="notranslate">top</code> means move cards from the top of the selected stack, and <code class="notranslate">all</code> means move all of the cards from the selected stack. (<code class="notranslate">all</code> could have been replaced by a number <code class="notranslate">5</code>, or a variable <code class="notranslate">X</code> for instance)<br><br>
+    the <code class="notranslate">where</code> clause specifies constraints on what can be selected, we will cover this later.<br>
+    Importantly, anything after the <code class="notranslate">then</code> and before the next <code class="notranslate">pick</code> or <code class="notranslate">end</code> of the pick block will run after the player has selected that option.<br>
+    You must always write the word <code class="notranslate">then</code> even if nothing will run. In this case, the first thing after <code class="notranslate">then</code> is the next <code class="notranslate">pick</code> option, so nothing will run after the user selects this option.<br>
+    </p>
+    <h4>Moving & Cutting</h4>
+    <p>
+    There are two ways of moving cards between stacks. Cutting <code class="notranslate">/></code> and moving <code class="notranslate">-></code>.
+    Cutting preserves the order of the cards, where as moving reverses them.<br><br>
+
+    Imagine taking a card from one stack and placing it ontop of another stack. Then repeat that 3 times. The top three cards from the source stack are now in the destination stack in the opposite order than they were in before. This is a move <code class="notranslate">-></code>.<br><br>
+
+    Now imagine you had taken the same three cards from the source stack together, and moved them all at once to the destination stack. The same three cards are now in the same order. This is a cut <code class="notranslate">/></code>.<br><br>This is the difference between moving and cutting.
+    </p>
+    <h4>The 'where' Clause</h4>
+    <p>
+    Let's focus on the <code class="notranslate">where</code> clause in the pick block above
+    </p>
+    <pre class="code notranslate"> pick ... where from{from.size > 0}, to{(from.top.v == to.top.v) || (from.top.suit == to.top.suit)} ...</pre>
+    <p>
+    This might be more obvious to you if you are familiar with SQL. The where clause constrains what stacks the user can select as the source (<code class="notranslate">from</code>) and destination (<code class="notranslate">to</code>) stacks.<br>
+    in a <code class="notranslate">where</code> clause, the variable <code class="notranslate">from</code> references the source stack, while the variable <code class="notranslate">to</code> references the destination stack.<br><br>
+    </p>
+    <pre class="code notranslate">from{from.size > 0}</pre>
+    <p>
+    This means, constrain the source stack to stacks that contain at least one card (more than 0 cards)<br><br>
+    </p>
+    <pre class="code notranslate">to{(from.top.v == to.top.v) || (from.top.suit == to.top.suit)}</pre>
+    <p>
+    This means, constrain the set of possible destination stacks to stacks where the top card has either the same <code class="notranslate">v</code> value (<code class="notranslate">from.top.v == to.top.v</code>) <b>OR</b> (<code class="notranslate">||</code>) the same <code class="notranslate">suit</code> value (<code class="notranslate">from.top.suit == to.top.suit</code>)<br><br>
+    Note the comma <code class="notranslate"> ... > 0}<b>,</b> to{ ...</code> that <b>must</b> separate the two clauses
+    </p>
+    <img src="img/cut_where.gif" width="640"/>
+    <h4>auto</h4>
+    <p>
+        <code class="notranslate">auto</code> simply means that the move or cut will happen without needing any user input.
+    </p>
+
+    <h4> ... -> row{|[]}</h4>
+    <p>
+        Notice in the second pick block, in the <code class="notranslate">then</code> block (gets executed after the user selects the <code class="notranslate">deck -> deck top 0 </code> option) <br>
+        <br>
+        we move the top card (<code class="notranslate">top 1</code>) from <code class="notranslate">deck</code> to one of the stacks in <code class="notranslate">row</code><br>
+        <br>
+        The <code class="notranslate">{...}</code> means select a stack from this <code class="notranslate">stacklist</code> that satisfies the follwing condition.<br>
+        <br>
+        The condition we specify is: <code class="notranslate">|[]</code> - meaning the first stack <code class="notranslate">|</code> that matches this sequence <code class="notranslate">[]</code>. <code class="notranslate">[]</code> is an empty sequence. <br> <br>
+        So what this means is, move the top card from <code class="notranslate">deck</code> to the first empty stack in <code class="notranslate">row</code>.
+    </p>
+    <img src="img/movetofirst.gif" width="640"/>
+
+    <h4>every</h4>
+    <p>
+        after the end of the pick block, we have another <code class="notranslate">/></code> cut command.
+    </p>
+    <pre class="code notranslate">
+every row /> row[:-1] top all where to{(to.size == 0) && (from.size > 0)}
+    </pre>
+
+    <p>
+        When the source of a move is a stacklist, we can use the <code class="notranslate">every</code> keyword to specify that the move must happen for every stack in the stacklist
+        <br> <br>
+        We always want to make sure that there are no empty gaps in our accordion, that is, there cannot be an empty stack in between two stacks with cards in them.
+        <br> <br>
+        This line says: For every stack in the stacklist <code class="notranslate">row</code>, if there are any cards in that stack, and no cards in the stack immediately to the left of it <code class="notranslate">row[:-1]</code>, <b>cut</b> all of it's cards one stack to the left.
+    </p>
+    <img  src="img/every.gif" width="640"/>
+
+    <h4>The 'winneris' clause</h4>
+    <p>
+        the next section should be self explanetory if you are at all familiar with programming.
+    </p>
+    <pre class="code notranslate">
+if (row[0]).size == 52 start
+    winneris currentPlayer
+end
+    </pre>
+    <p>
+        If the first stack in the row contains all 52 cards, then the player has won. <br><br>
+        The game code does not detect when there are no moves available to the player, but if it did it could set a loosing state with <code class="notranslate">looseris currentPlayer</code>
+        <br><br>
+        The <code class="notranslate">currentPlayer</code> variable simply refurs to the player whos turn it is now. For a single player game, this is always the same player.
+        <br><br>
+    </p>
 </body>
 </html>
